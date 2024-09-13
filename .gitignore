@@ -1,0 +1,144 @@
+# Arquivos e diretórios gerados pelo Android Studio
+.gradle/
+.idea/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+/.vscode/
+
+# Arquivos de log
+*.log
+
+# Diretórios de compilação
+*.apk
+*.ap_
+*.aab
+*.app
+
+# Arquivos de configuração do Android
+local.properties
+/.bundle/
+.DS_Store
+Thumbs.db
+
+# Arquivos de backup criados pelo sistema
+*.iml
+*.hprof
+
+# Arquivos temporários
+*.temp
+*.tmp
+*.swp
+*.swo
+*.swn
+
+# Arquivos de build do NDK
+obj/
+.libs/
+.libraries/
+
+# Arquivos gerados pelo lint
+/lint/intermediates/
+/lint/generated/
+
+# Diretórios de compilação intermediária
+/intermediates/
+/outputs/
+/generated/
+/build/
+
+# Diretórios de cache
+/caches/
+/local/
+
+# Dependências externas
+/.idea/libraries/
+.gradle/
+*/build/
+
+# Arquivos relacionados ao Kotlin/Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Arquivos de ProGuard/R8
+proguard/
+
+# Configurações específicas do sistema operacional
+*.orig
+*.rej
+*.bak
+*.swp
+
+# Arquivos do Android Studio específicos do usuário
+.idea/caches/*
+.idea/libraries/*
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/misc.xml
+.idea/copyright/
+.idea/modules.xml
+.idea/gradle.xml
+.idea/sonarlint/
+.idea/dictionaries/
+.idea/shelf/
+
+# Arquivos do Maven
+/.mvn/timing.properties
+
+# Exclua arquivos JAR de bibliotecas
+libs/*.jar
+
+# Arquivos temporários do sistema operacional
+*.tmp
+*.temp
+*.swp
+*.swo
+*.swm
+*.bak
+*.backup
+*.back
+
+# Arquivos de configuração locais
+local.properties
+local.gradle
+
+# Arquivos gerados pela configuração de depuração e execução
+/.idea/runConfigurations/
+
+# Arquivos relacionados ao benchmarking do Android Studio
+.benchmark/
+
+# Arquivos de configuração do OS específico
+**/Thumbs.db
+**/Desktop.ini
+
+# Arquivos gerados pelo sistema ao abrir o projeto
+/.project
+/.classpath
+/.settings/
+
+# Arquivos gerados pelo compilador de C++ do Android NDK
+obj/
+libs/
+
+# Arquivos de teste
+.test_cache/
+
+# Configurações específicas de integração contínua (CI)
+ci/
+
+# Evita que arquivos específicos do sistema sejam adicionados
+.vscode/
+
+# Arquivos de layout e configurações do Android Studio que são específicas de cada desenvolvedor
+.idea/codeStyles/
+.idea/dictionaries/
+.idea/gradle.xml
+.idea/modules.xml
+.idea/workspace.xml

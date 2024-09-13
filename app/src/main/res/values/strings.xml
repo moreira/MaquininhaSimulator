@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">MaquininhaSimulator</string>
+    <string name="localizar_dispositvo">Localizar dispositvo</string>
+    <string name="enviar_select">Enviar Select</string>
+    <string name="enviar_update">Enviar Update</string>
+    <string name="reset">Reset</string>
+    <string name="ok">: ✅</string>
+    <string name="nok">: ❌</string>
+    <string name="status_nfc">Status NFC:</string>
+</resources>
