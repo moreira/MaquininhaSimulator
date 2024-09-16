@@ -2,6 +2,7 @@ package com.example.maquininhasimulator;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -23,6 +24,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -99,7 +101,10 @@ public class MainActivity extends AppCompatActivity {
 
                 executeOnMainThread(()->enviarSelectView.setText(String.format("%s%s", enviarSelectView.getText(), getString(R.string.ok))));
 
-                NdefRecord ndefRecord = NdefRecord.createUri("pix://maquininhadepagto?qr=00020126520014br.gov.bcb.pix0111338761298260215Teste guilherme5204000053039865802BR5925MARCOS PAULO HASHIZUME DE6008BRASILIA62290525hvjxjRPmlW301FHzVuWWRI9PN63046D43&sig=assinatura_eletronica");
+                String qrCode = "00020126520014br.gov.bcb.pix0111338761298260215Teste guilherme5204000053039865802BR5925MARCOS PAULO HASHIZUME DE6008BRASILIA62290525hvjxjRPmlW301FHzVuWWRI9PN63046D43";
+                String assinaturaEletronica = UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString();
+
+                NdefRecord ndefRecord = NdefRecord.createUri("pix://maquininhadepagto?qr=" + qrCode + "&sig=" + assinaturaEletronica);
                 byte[] updateResponse = isoDep.transceive(createUpdateApdu(ndefRecord.toByteArray()));
                 Log.d("APDU", "Resposta do comando UPDATE: " + byteToHex(updateResponse));
                 if (!validateApduResponse(updateResponse)) {
@@ -143,16 +148,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private byte[] createUpdateApdu(byte[] urlBytes) {
-        byte[] command = new byte[urlBytes.length + 5];
+        byte[] command = new byte[urlBytes.length + 7];
 
         command[0] = (byte) 0x00; // CLA
         command[1] = (byte) 0xD6; // INS (UPDATE)
         command[2] = (byte) 0x00; // P1 (Parameter 1)
         command[3] = (byte) 0x00; // P2 (Parameter 2)
-        command[4] = (byte) urlBytes.length; // Lc (Length of data)
+        command[4] = (byte) 0x00;
 
-        System.arraycopy(urlBytes, 0, command, 5, urlBytes.length);
+        byte[] size = getDataSize(urlBytes);
+        command[5] = size[0];
+        command[6] = size[1];
+
+        System.arraycopy(urlBytes, 0, command, 7, urlBytes.length);
         return command;
+    }
+
+    private byte[] getDataSize(byte[] urlBytes) {
+        int length = urlBytes.length;
+        return new byte[]{(byte) (length>>8 & 0xFF), (byte) (length & 0xFF)};
     }
 
     @SuppressLint("SetTextI18n")
@@ -201,6 +215,7 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void showToastOnMainThread(String message) {
