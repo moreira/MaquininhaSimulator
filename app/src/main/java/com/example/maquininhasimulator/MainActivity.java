@@ -136,7 +136,8 @@ public class MainActivity extends AppCompatActivity {
                 (byte) 0x04, // P1 (Selection by name)
                 (byte) 0x00, // P2 (First or only occurrence)
                 (byte) 0x07, // Lc (Length of the AID)
-                (byte) 0xF0, (byte) 0x39, (byte) 0x41, (byte) 0x48, (byte) 0x14, (byte) 0x81, (byte) 0x00 // AID F0394148148100
+                (byte) 0xF0, (byte) 0x39, (byte) 0x41, (byte) 0x48, (byte) 0x14, (byte) 0x81, (byte) 0x00, // AID F0394148148100
+                (byte) 0x00
         };
     }
 
