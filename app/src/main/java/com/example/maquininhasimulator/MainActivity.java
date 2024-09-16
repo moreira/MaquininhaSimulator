@@ -3,6 +3,8 @@ package com.example.maquininhasimulator;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.IsoDep;
@@ -97,9 +99,8 @@ public class MainActivity extends AppCompatActivity {
 
                 executeOnMainThread(()->enviarSelectView.setText(String.format("%s%s", enviarSelectView.getText(), getString(R.string.ok))));
 
-                byte[] updateResponse = isoDep.transceive(createUpdateApdu(
-                        "00020126520014br.gov.bcb.pix0111338761298260215Teste guilherme5204000053039865802BR5925MARCOS PAULO HASHIZUME DE6008BRASILIA62290525hvjxjRPmlW301FHzVuWWRI9PN63046D43"
-                ));
+                NdefRecord ndefRecord = NdefRecord.createUri("pix://maquininhadepagto?qr=00020126520014br.gov.bcb.pix0111338761298260215Teste guilherme5204000053039865802BR5925MARCOS PAULO HASHIZUME DE6008BRASILIA62290525hvjxjRPmlW301FHzVuWWRI9PN63046D43&sig=assinatura_eletronica");
+                byte[] updateResponse = isoDep.transceive(createUpdateApdu(ndefRecord.toByteArray()));
                 Log.d("APDU", "Resposta do comando UPDATE: " + byteToHex(updateResponse));
                 if (!validateApduResponse(updateResponse)) {
                     showToastOnMainThread("Erro no comando UPDATE, operação interrompida.");
@@ -141,8 +142,7 @@ public class MainActivity extends AppCompatActivity {
         };
     }
 
-    private byte[] createUpdateApdu(String url) {
-        byte[] urlBytes = url.getBytes();
+    private byte[] createUpdateApdu(byte[] urlBytes) {
         byte[] command = new byte[urlBytes.length + 5];
 
         command[0] = (byte) 0x00; // CLA
