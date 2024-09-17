@@ -1,10 +1,12 @@
 package com.example.maquininhasimulator;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.nfc.NdefMessage;
+import android.net.Uri;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
@@ -23,16 +25,26 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
+
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final String QRCODE_STORAGE = "QRCODE_STORAGE";
+    public static final String LAST_READ_QRCODE = "LAST_READ_QRCODE";
+    public static final String DEFAULT_QRCODE = "00020126750014BR.GOV.BCB.PIX013637109bf1-8b06-43c7-bdb2-95768909fe2d0213Doacao Unicef5204000053039865802BR5925FUNDO DAS NACOES UNIDAS P6009SAO.PAULO62070503***63047B1B";
     private NfcAdapter nfcAdapter;
     private TextView localizarDispositivoView;
     private TextView enviarSelectView;
     private TextView enviarUpdateView;
     private TextView statusNFC;
+    private TextView qrCodeAtual;
+
+    private String qrCode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,11 +67,23 @@ public class MainActivity extends AppCompatActivity {
         statusNFC = findViewById(R.id.status_nfc);
         statusNFC.setText(getText(R.string.status_nfc));
 
+        qrCodeAtual = findViewById(R.id.qrcode_atual);
+        qrCodeAtual.setText("-");
+        configureQRCode(getQRcode());
+
         Button resetButton = findViewById(R.id.reset);
         resetButton.setOnClickListener(view -> {
             @SuppressLint("UnsafeIntentLaunch") Intent intent = getIntent();
             finish();
             startActivity(intent);
+        });
+
+        Button capturarQRCode = findViewById(R.id.capturar_qr_code);
+        capturarQRCode.setOnClickListener(view -> {
+            IntentIntegrator intentIntegrator = new IntentIntegrator(MainActivity.this);
+            intentIntegrator.setPrompt("Ler QRCode");
+            intentIntegrator.setOrientationLocked(false);
+            intentIntegrator.initiateScan(Set.of(IntentIntegrator.QR_CODE));
         });
     }
 
@@ -100,11 +124,11 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 executeOnMainThread(()->enviarSelectView.setText(String.format("%s%s", enviarSelectView.getText(), getString(R.string.ok))));
+                configureQRCode(getQRcode());
 
-                String qrCode = "00020126520014br.gov.bcb.pix0111338761298260215Teste guilherme5204000053039865802BR5925MARCOS PAULO HASHIZUME DE6008BRASILIA62290525hvjxjRPmlW301FHzVuWWRI9PN63046D43";
                 String assinaturaEletronica = UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString();
 
-                NdefRecord ndefRecord = NdefRecord.createUri("pix://maquininhadepagto?qr=" + qrCode + "&sig=" + assinaturaEletronica);
+                NdefRecord ndefRecord = NdefRecord.createUri("pix://maquininhadepagto?qr=" + this.qrCode + "&sig=" + assinaturaEletronica);
                 byte[] updateResponse = isoDep.transceive(createUpdateApdu(ndefRecord.toByteArray()));
                 Log.d("APDU", "Resposta do comando UPDATE: " + byteToHex(updateResponse));
                 if (!validateApduResponse(updateResponse)) {
@@ -127,6 +151,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    private void configureQRCode(String qrCode) {
+        this.qrCode = qrCode;
+
+        Log.d("APDU", "QRCode:"+this.qrCode);
+        executeOnMainThread(()->{
+            qrCodeAtual.setText(this.qrCode);
+        });
+        SharedPreferences.Editor qrcodeStorage = this.getSharedPreferences(QRCODE_STORAGE, Context.MODE_PRIVATE).edit();
+        qrcodeStorage.putString(LAST_READ_QRCODE, qrCode);
+        qrcodeStorage.apply();
+    }
+
+    private String getQRcode() {
+        SharedPreferences qrcodeStorage = this.getSharedPreferences(QRCODE_STORAGE, Context.MODE_PRIVATE);
+        return qrcodeStorage.getString(LAST_READ_QRCODE, DEFAULT_QRCODE);
     }
 
     private boolean validateApduResponse(byte[] responseApdu) {
@@ -233,5 +274,15 @@ public class MainActivity extends AppCompatActivity {
             hexString.append(hex).append(" ");
         }
         return hexString.toString().trim(); // Remove o espaço extra no final
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        IntentResult intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (intentResult != null) {
+            String contents = intentResult.getContents();
+            configureQRCode(contents);
+        }
     }
 }

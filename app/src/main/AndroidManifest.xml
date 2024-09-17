@@ -3,7 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.CAMERA"/>
+
     <uses-feature android:name="android.hardware.nfc" android:required="true" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
 
     <application
         android:allowBackup="true"
