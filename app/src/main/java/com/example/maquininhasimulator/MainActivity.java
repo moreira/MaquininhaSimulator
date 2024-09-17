@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
-import android.net.Uri;
+import android.graphics.Bitmap;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,8 +26,11 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
+import com.journeyapps.barcodescanner.BarcodeEncoder;
 
 import java.io.IOException;
 import java.util.Set;
@@ -45,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView qrCodeAtual;
 
     private String qrCode;
+    private ImageView qrCodeImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +71,9 @@ public class MainActivity extends AppCompatActivity {
 
         statusNFC = findViewById(R.id.status_nfc);
         statusNFC.setText(getText(R.string.status_nfc));
+
+        qrCodeImage = findViewById(R.id.qrcode_image);
+        qrCodeImage.setImageResource(android.R.drawable.ic_dialog_alert);
 
         qrCodeAtual = findViewById(R.id.qrcode_atual);
         qrCodeAtual.setText("-");
@@ -159,6 +167,8 @@ public class MainActivity extends AppCompatActivity {
         Log.d("APDU", "QRCode:"+this.qrCode);
         executeOnMainThread(()->{
             qrCodeAtual.setText(this.qrCode);
+            this.qrCodeImage.setImageBitmap(this.generateQRCode(this.qrCode));
+            ;
         });
         SharedPreferences.Editor qrcodeStorage = this.getSharedPreferences(QRCODE_STORAGE, Context.MODE_PRIVATE).edit();
         qrcodeStorage.putString(LAST_READ_QRCODE, qrCode);
@@ -274,6 +284,17 @@ public class MainActivity extends AppCompatActivity {
             hexString.append(hex).append(" ");
         }
         return hexString.toString().trim(); // Remove o espaço extra no final
+    }
+
+    private Bitmap generateQRCode(String text) {
+        BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
+        try {
+            return barcodeEncoder.encodeBitmap(text, BarcodeFormat.QR_CODE, 300, 300);
+        }
+        catch (WriterException e) {
+            Toast.makeText(this, "Erro ao gerar QRCode:"+ e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+        return null;
     }
 
     @Override
