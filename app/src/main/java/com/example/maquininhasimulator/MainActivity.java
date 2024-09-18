@@ -199,7 +199,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private byte[] createUpdateApdu(byte[] urlBytes) {
-        byte[] command = new byte[urlBytes.length + 7];
+        // 7 = header
+        // data length
+        // 1 = campo "Le"
+        byte[] command = new byte[ 7 + urlBytes.length + 1];
 
         command[0] = (byte) 0x00; // CLA
         command[1] = (byte) 0xD6; // INS (UPDATE)
