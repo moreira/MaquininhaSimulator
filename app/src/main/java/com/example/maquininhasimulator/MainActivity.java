@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
         command[3] = (byte) 0x00; // P2 (Parameter 2)
         command[4] = (byte) 0x00;
 
-        byte[] size = getDataSize(urlBytes);
+        byte[] size = getExtendedDataSize(urlBytes);
         command[5] = size[0];
         command[6] = size[1];
 
@@ -218,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
         return command;
     }
 
-    private byte[] getDataSize(byte[] urlBytes) {
+    private byte[] getExtendedDataSize(byte[] urlBytes) {
         int length = urlBytes.length;
         return new byte[]{(byte) (length>>8 & 0xFF), (byte) (length & 0xFF)};
     }
@@ -283,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
     public String byteToHex(byte[] bytes) {
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {
-            String hex = String.format("%02X", b);
+            String hex = String.format("0x%02X,", b);
             hexString.append(hex).append(" ");
         }
         return hexString.toString().trim(); // Remove o espaço extra no final
