@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
@@ -14,8 +15,11 @@ import android.nfc.tech.IsoDep;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -35,12 +39,19 @@ import com.journeyapps.barcodescanner.BarcodeEncoder;
 import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import kotlin.text.Regex;
 
 public class MainActivity extends AppCompatActivity {
 
-    public static final String QRCODE_STORAGE = "QRCODE_STORAGE";
+    public static final String MAQUININHA_STORAGE = "MAQUININHA_STORAGE";
     public static final String LAST_READ_QRCODE = "LAST_READ_QRCODE";
+    public static final String LAST_AID = "LAST_AID";
     public static final String DEFAULT_QRCODE = "00020126750014BR.GOV.BCB.PIX013637109bf1-8b06-43c7-bdb2-95768909fe2d0213Doacao Unicef5204000053039865802BR5925FUNDO DAS NACOES UNIDAS P6009SAO.PAULO62070503***63047B1B";
+    public static final String DEFAULT_AID = "F8032958302533";
+
     private NfcAdapter nfcAdapter;
     private TextView localizarDispositivoView;
     private TextView enviarSelectView;
@@ -48,8 +59,11 @@ public class MainActivity extends AppCompatActivity {
     private TextView statusNFC;
     private TextView qrCodeAtual;
 
+    private String aid;
     private String qrCode;
     private ImageView qrCodeImage;
+    private EditText aidEditText;
+    private ExecutorService newSingleThreadExecutor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,13 +91,31 @@ public class MainActivity extends AppCompatActivity {
 
         qrCodeAtual = findViewById(R.id.qrcode_atual);
         qrCodeAtual.setText("-");
-        configureQRCode(getQRcode());
+        configureQRCode(loadQRCode());
+
+        String aid = loadAID();
+        aidEditText = findViewById(R.id.aid_edittext);
+        aidEditText.setText(aid);
+        configureAID(aid);
+        aidEditText.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence charSequence, int start, int before, int count) {}
+            public void onTextChanged(CharSequence charSequence, int start, int before, int count) {}
+            public void afterTextChanged(Editable editable) {
+                configureAID(editable.toString());
+            }
+        });
 
         Button resetButton = findViewById(R.id.reset);
         resetButton.setOnClickListener(view -> {
             @SuppressLint("UnsafeIntentLaunch") Intent intent = getIntent();
             finish();
             startActivity(intent);
+        });
+
+        Button aidButton = findViewById(R.id.aid_default);
+        aidButton.setOnClickListener(view -> {
+            aidEditText.setText(DEFAULT_AID);
+            configureAID(DEFAULT_AID);
         });
 
         Button capturarQRCode = findViewById(R.id.capturar_qr_code);
@@ -93,6 +125,28 @@ public class MainActivity extends AppCompatActivity {
             intentIntegrator.setOrientationLocked(false);
             intentIntegrator.initiateScan(Set.of(IntentIntegrator.QR_CODE));
         });
+
+
+    }
+
+    private void configureAID(String aid) {
+        Log.d("APDU", "AID:"+this.qrCode);
+        if(!new Regex("[A-Z]\\d{13}").matches(aid)){
+            this.aidEditText.setBackgroundColor(Color.argb(25, 255, 0, 0));
+        }else{
+            this.aidEditText.setBackgroundColor(Color.argb(255, 255, 255, 255));
+        }
+        this.aid = aid;
+        newSingleThreadExecutor.execute(()->{
+            SharedPreferences.Editor qrcodeStorage = this.getSharedPreferences(MAQUININHA_STORAGE, Context.MODE_PRIVATE).edit();
+            qrcodeStorage.putString(LAST_AID, this.aid);
+            qrcodeStorage.apply();
+        });
+    }
+
+    private String loadAID() {
+        SharedPreferences qrcodeStorage = this.getSharedPreferences(MAQUININHA_STORAGE, Context.MODE_PRIVATE);
+        return qrcodeStorage.getString(LAST_AID, DEFAULT_AID);
     }
 
     @Override
@@ -121,7 +175,11 @@ public class MainActivity extends AppCompatActivity {
             try {
                 isoDep.connect();
 
-                byte[] selectAidCommand = createSelectCommand();
+                byte[] selectAidCommand = createSelectCommand(this.aid);
+                if(selectAidCommand == null){
+                    Toast.makeText(this, "AID inválido", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 byte[] responseApdu = isoDep.transceive(selectAidCommand);
 
                 Log.d("APDU", "Resposta SELECT: "+byteToHex(responseApdu));
@@ -132,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 executeOnMainThread(()->enviarSelectView.setText(String.format("%s%s", enviarSelectView.getText(), getString(R.string.ok))));
-                configureQRCode(getQRcode());
+                configureQRCode(loadQRCode());
 
                 String assinaturaEletronica = UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString()+"-"+UUID.randomUUID().toString();
 
@@ -168,15 +226,14 @@ public class MainActivity extends AppCompatActivity {
         executeOnMainThread(()->{
             qrCodeAtual.setText(this.qrCode);
             this.qrCodeImage.setImageBitmap(this.generateQRCode(this.qrCode));
-            ;
         });
-        SharedPreferences.Editor qrcodeStorage = this.getSharedPreferences(QRCODE_STORAGE, Context.MODE_PRIVATE).edit();
+        SharedPreferences.Editor qrcodeStorage = this.getSharedPreferences(MAQUININHA_STORAGE, Context.MODE_PRIVATE).edit();
         qrcodeStorage.putString(LAST_READ_QRCODE, qrCode);
         qrcodeStorage.apply();
     }
 
-    private String getQRcode() {
-        SharedPreferences qrcodeStorage = this.getSharedPreferences(QRCODE_STORAGE, Context.MODE_PRIVATE);
+    private String loadQRCode() {
+        SharedPreferences qrcodeStorage = this.getSharedPreferences(MAQUININHA_STORAGE, Context.MODE_PRIVATE);
         return qrcodeStorage.getString(LAST_READ_QRCODE, DEFAULT_QRCODE);
     }
 
@@ -186,16 +243,33 @@ public class MainActivity extends AppCompatActivity {
                 responseApdu[responseApdu.length - 1] == (byte) 0x00;
     }
 
-    private static byte [] createSelectCommand() {
-        return new byte[]{
+    private byte [] createSelectCommand(String aid) {
+        if (aid.length() != 14){
+            return null;
+        }
+        byte[] command = new byte[]{
                 (byte) 0x00, // CLA
                 (byte) 0xA4, // INS (SELECT)
                 (byte) 0x04, // P1 (Selection by name)
                 (byte) 0x00, // P2 (First or only occurrence)
                 (byte) 0x07, // Lc (Length of the AID)
-                (byte) 0xF0, (byte) 0x39, (byte) 0x41, (byte) 0x48, (byte) 0x14, (byte) 0x81, (byte) 0x00, // AID F0394148148100
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 (byte) 0x00
         };
+        byte[] aidBytes = hexStringToByteArray(aid);
+        System.arraycopy(aidBytes, 0, command, 5, 7);
+
+        return command;
+    }
+
+    public static byte[] hexStringToByteArray(String s) {
+        int length = s.length();
+        byte[] byteArray = new byte[length / 2];
+        for (int i = 0; i < length; i += 2) {
+            byteArray[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return byteArray;
     }
 
     private byte[] createUpdateApdu(byte[] urlBytes) {
@@ -270,6 +344,7 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        newSingleThreadExecutor = Executors.newSingleThreadExecutor();
     }
 
     private void showToastOnMainThread(String message) {
@@ -306,7 +381,9 @@ public class MainActivity extends AppCompatActivity {
         IntentResult intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
         if (intentResult != null) {
             String contents = intentResult.getContents();
-            configureQRCode(contents);
+            if (contents != null) {
+                configureQRCode(contents);
+            }
         }
     }
 }
